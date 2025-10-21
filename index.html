@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penetration Framework</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #080808;
+            color: #00ff96;
+            overflow-x: hidden;
+        }
+
+        #matrix-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.2;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .terminal-header {
+            background: rgba(18, 18, 18, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0, 255, 150, 0.3);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 6px;
+        }
+
+        .window-control {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .window-control.red { background: rgba(255, 59, 48, 0.8); }
+        .window-control.yellow { background: rgba(255, 204, 0, 0.8); }
+        .window-control.green { background: rgba(0, 255, 150, 0.8); }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title {
+            font-size: 14px;
+            color: #00ff96;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 11px;
+            color: rgba(0, 255, 150, 0.6);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff96;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            gap: 16px;
+            padding: 16px;
+        }
+
+        .terminal-output {
+            flex: 1;
+            background: rgba(18, 18, 18, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 255, 150, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            height: calc(100vh - 120px);
+            overflow-y: auto;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .terminal-line {
+            margin-bottom: 4px;
+        }
+
+        .terminal-line.success { color: #00ff96; }
+        .terminal-line.warning { color: #fbbf24; }
+        .terminal-line.error { color: #ef4444; }
+        .terminal-line.info { color: #00d9ff; }
+        .terminal-line.normal { color: rgba(0, 255, 150, 0.8); }
+
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 16px;
+            background: #00ff96;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+
+        .sidebar {
+            width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .stats-card {
+            background: rgba(18, 18, 18, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 255, 150, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .stats-title {
+            font-size: 11px;
+            font-weight: bold;
+            color: #00ff96;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .stat-item {
+            margin-bottom: 12px;
+        }
+
+        .stat-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+
+        .stat-label-text {
+            color: rgba(0, 255, 150, 0.6);
+        }
+
+        .stat-value {
+            color: #00ff96;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: rgba(0, 255, 150, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #00ff96;
+            transition: width 0.5s ease;
+        }
+
+        .progress-fill.secondary {
+            background: #00d9ff;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            margin-bottom: 8px;
+        }
+
+        .info-label {
+            color: rgba(0, 255, 150, 0.6);
+        }
+
+        .info-value {
+            color: #00ff96;
+        }
+
+        .info-value.warning {
+            color: #fbbf24;
+        }
+
+        .exploit-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            margin-bottom: 8px;
+        }
+
+        .exploit-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff96;
+        }
+
+        .exploit-dot.inactive {
+            background: rgba(0, 255, 150, 0.3);
+        }
+
+        .scan-line {
+            position: fixed;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: rgba(0, 255, 150, 0.3);
+            pointer-events: none;
+            z-index: 20;
+            animation: scan 8s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 255, 150, 0.1);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 150, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 255, 150, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix-canvas"></canvas>
+    
+    <div class="container">
+        <div class="terminal-header">
+            <div class="header-left">
+                <div class="window-controls">
+                    <div class="window-control red"></div>
+                    <div class="window-control yellow"></div>
+                    <div class="window-control green"></div>
+                </div>
+                <span class="header-title">root@penetration-kit:~#</span>
+            </div>
+            <div class="header-right">
+                <span id="session-date"></span>
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span>ACTIVE</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="terminal-output" id="terminal"></div>
+
+            <div class="sidebar">
+                <div class="stats-card">
+                    <div class="stats-title">System Status</div>
+                    <div class="stat-item">
+                        <div class="stat-label">
+                            <span class="stat-label-text">CPU Usage</span>
+                            <span class="stat-value" id="cpu-value">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="cpu-bar"></div>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">
+                            <span class="stat-label-text">Memory</span>
+                            <span class="stat-value" id="memory-value">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill secondary" id="memory-bar"></div>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">
+                            <span class="stat-label-text">Network</span>
+                            <span class="stat-value" id="network-value">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="network-bar"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-card">
+                    <div class="stats-title">Target Information</div>
+                    <div class="info-row">
+                        <span class="info-label">IP Address:</span>
+                        <span class="info-value">192.168.1.1</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">OS:</span>
+                        <span class="info-value">Linux 5.15</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Open Ports:</span>
+                        <span class="info-value">4</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Vulnerabilities:</span>
+                        <span class="info-value warning">3 High</span>
+                    </div>
+                </div>
+
+                <div class="stats-card">
+                    <div class="stats-title">Network Activity</div>
+                    <div class="info-row">
+                        <span class="info-label">Packets Sent:</span>
+                        <span class="info-value" id="packets-value">0</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Protocol:</span>
+                        <span class="info-value">TCP/IP</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Encryption:</span>
+                        <span class="info-value">AES-256</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Status:</span>
+                        <span class="info-value">
+                            <div class="status-indicator">
+                                <div class="status-dot" style="width: 6px; height: 6px;"></div>
+                                <span>Connected</span>
+                            </div>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="stats-card">
+                    <div class="stats-title">Exploit Status</div>
+                    <div class="exploit-item">
+                        <div class="exploit-dot"></div>
+                        <span>SQL Injection</span>
+                    </div>
+                    <div class="exploit-item">
+                        <div class="exploit-dot"></div>
+                        <span>Privilege Escalation</span>
+                    </div>
+                    <div class="exploit-item">
+                        <div class="exploit-dot"></div>
+                        <span>Backdoor Deployment</span>
+                    </div>
+                    <div class="exploit-item">
+                        <div class="exploit-dot inactive"></div>
+                        <span style="color: rgba(0, 255, 150, 0.5);">Lateral Movement</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="scan-line"></div>
+
+    <script>
+        // Matrix background effect
+        const canvas = document.getElementById('matrix-canvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const drops = [];
+
+        for (let i = 0; i < columns; i++) {
+            drops[i] = Math.random() * -100;
+        }
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(8, 8, 8, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = 'rgba(0, 255, 150, 0.15)';
+            ctx.font = `${fontSize}px monospace`;
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars[Math.floor(Math.random() * chars.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(drawMatrix, 50);
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Terminal sequence
+        const terminalSequence = [
+            { text: '> Initializing penetration framework...', type: 'info', delay: 500 },
+            { text: '> Loading exploit modules... [OK]', type: 'success', delay: 800 },
+            { text: '> Establishing secure tunnel... [OK]', type: 'success', delay: 1200 },
+            { text: '', type: 'normal', delay: 1400 },
+            { text: '> Starting network reconnaissance...', type: 'info', delay: 1600 },
+            { text: '> Scanning target: 192.168.1.1', type: 'normal', delay: 2000 },
+            { text: '  [*] Port 22/tcp   open   ssh', type: 'normal', delay: 2300 },
+            { text: '  [*] Port 80/tcp   open   http', type: 'normal', delay: 2500 },
+            { text: '  [*] Port 443/tcp  open   https', type: 'normal', delay: 2700 },
+            { text: '  [*] Port 3306/tcp open   mysql', type: 'warning', delay: 2900 },
+            { text: '', type: 'normal', delay: 3100 },
+            { text: '> Analyzing vulnerabilities...', type: 'info', delay: 3300 },
+            { text: '  [!] CVE-2024-3094 detected', type: 'warning', delay: 3800 },
+            { text: '  [!] Weak SSL configuration found', type: 'warning', delay: 4100 },
+            { text: '  [!] Default credentials detected', type: 'warning', delay: 4400 },
+            { text: '', type: 'normal', delay: 4600 },
+            { text: '> Attempting authentication bypass...', type: 'info', delay: 4800 },
+            { text: "  [*] Testing SQL injection vectors...", type: 'normal', delay: 5300 },
+            { text: "  [*] Payload: ' OR '1'='1' --", type: 'normal', delay: 5800 },
+            { text: '  [+] Authentication bypassed!', type: 'success', delay: 6500 },
+            { text: '', type: 'normal', delay: 6700 },
+            { text: '> Escalating privileges...', type: 'info', delay: 6900 },
+            { text: '  [*] Exploiting kernel vulnerability...', type: 'normal', delay: 7400 },
+            { text: '  [+] Root access obtained!', type: 'success', delay: 8200 },
+            { text: '', type: 'normal', delay: 8400 },
+            { text: '> Extracting sensitive data...', type: 'info', delay: 8600 },
+            { text: '  [*] /etc/passwd', type: 'normal', delay: 9000 },
+            { text: '  [*] /etc/shadow', type: 'normal', delay: 9200 },
+            { text: '  [*] /var/www/config/database.php', type: 'normal', delay: 9400 },
+            { text: '  [*] /home/admin/.ssh/id_rsa', type: 'normal', delay: 9600 },
+            { text: '  [+] 2,847 files extracted', type: 'success', delay: 10200 },
+            { text: '', type: 'normal', delay: 10400 },
+            { text: '> Installing backdoor...', type: 'info', delay: 10600 },
+            { text: '  [*] Deploying persistent access module...', type: 'normal', delay: 11100 },
+            { text: '  [+] Backdoor installed at port 4444', type: 'success', delay: 11800 },
+            { text: '', type: 'normal', delay: 12000 },
+            { text: '> Clearing traces...', type: 'info', delay: 12200 },
+            { text: '  [*] Wiping system logs...', type: 'normal', delay: 12600 },
+            { text: '  [*] Removing command history...', type: 'normal', delay: 12900 },
+            { text: '  [+] All traces removed', type: 'success', delay: 13400 },
+            { text: '', type: 'normal', delay: 13600 },
+            { text: '═══════════════════════════════════════', type: 'success', delay: 13800 },
+            { text: '  PENETRATION COMPLETE', type: 'success', delay: 14000 },
+            { text: '  System compromised successfully', type: 'success', delay: 14200 },
+            { text: '  Full access maintained', type: 'success', delay: 14400 },
+            { text: '═══════════════════════════════════════', type: 'success', delay: 14600 },
+        ];
+
+        const terminal = document.getElementById('terminal');
+        let currentIndex = 0;
+
+        function displayLine() {
+            if (currentIndex < terminalSequence.length) {
+                const line = terminalSequence[currentIndex];
+                const lineElement = document.createElement('div');
+                lineElement.className = `terminal-line ${line.type}`;
+                lineElement.textContent = line.text || '\u00A0';
+                terminal.appendChild(lineElement);
+                terminal.scrollTop = terminal.scrollHeight;
+                
+                currentIndex++;
+                
+                if (currentIndex < terminalSequence.length) {
+                    const nextDelay = terminalSequence[currentIndex].delay - line.delay;
+                    setTimeout(displayLine, nextDelay);
+                }
+            }
+        }
+
+        // Start terminal sequence after 1 second
+        setTimeout(displayLine, 1000);
+
+        // System stats animation
+        let packets = 0;
+
+        function updateStats() {
+            const cpu = Math.floor(Math.random() * 40) + 60;
+            const memory = Math.floor(Math.random() * 30) + 65;
+            const network = Math.floor(Math.random() * 50) + 40;
+            packets += Math.floor(Math.random() * 100) + 50;
+
+            document.getElementById('cpu-value').textContent = cpu + '%';
+            document.getElementById('cpu-bar').style.width = cpu + '%';
+            
+            document.getElementById('memory-value').textContent = memory + '%';
+            document.getElementById('memory-bar').style.width = memory + '%';
+            
+            document.getElementById('network-value').textContent = network + '%';
+            document.getElementById('network-bar').style.width = network + '%';
+            
+            document.getElementById('packets-value').textContent = packets.toLocaleString();
+        }
+
+        // Update stats every second after starting
+        setTimeout(() => {
+            setInterval(updateStats, 1000);
+        }, 1000);
+
+        // Set session date
+        document.getElementById('session-date').textContent = 'SESSION: ' + new Date().toISOString().split('T')[0];
+    </script>
+</body>
+</html>
