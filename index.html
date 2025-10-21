@@ -3,558 +3,328 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Penetration Framework</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Courier New', monospace;
-            background: #080808;
-            color: #00ff96;
-            overflow-x: hidden;
-        }
-
-        #matrix-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0.2;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .container {
-            position: relative;
-            z-index: 10;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .terminal-header {
-            background: rgba(18, 18, 18, 0.8);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(0, 255, 150, 0.3);
-            padding: 12px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .window-controls {
-            display: flex;
-            gap: 6px;
-        }
-
-        .window-control {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-        }
-
-        .window-control.red { background: rgba(255, 59, 48, 0.8); }
-        .window-control.yellow { background: rgba(255, 204, 0, 0.8); }
-        .window-control.green { background: rgba(0, 255, 150, 0.8); }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .header-title {
-            font-size: 14px;
-            color: #00ff96;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            font-size: 11px;
-            color: rgba(0, 255, 150, 0.6);
-        }
-
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #00ff96;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .main-content {
-            flex: 1;
-            display: flex;
-            gap: 16px;
-            padding: 16px;
-        }
-
-        .terminal-output {
-            flex: 1;
-            background: rgba(18, 18, 18, 0.5);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(0, 255, 150, 0.3);
-            border-radius: 8px;
-            padding: 16px;
-            height: calc(100vh - 120px);
-            overflow-y: auto;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        .terminal-line {
-            margin-bottom: 4px;
-        }
-
-        .terminal-line.success { color: #00ff96; }
-        .terminal-line.warning { color: #fbbf24; }
-        .terminal-line.error { color: #ef4444; }
-        .terminal-line.info { color: #00d9ff; }
-        .terminal-line.normal { color: rgba(0, 255, 150, 0.8); }
-
-        .cursor {
-            display: inline-block;
-            width: 10px;
-            height: 16px;
-            background: #00ff96;
-            animation: blink 1s infinite;
-        }
-
-        @keyframes blink {
-            0%, 49% { opacity: 1; }
-            50%, 100% { opacity: 0; }
-        }
-
-        .sidebar {
-            width: 320px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .stats-card {
-            background: rgba(18, 18, 18, 0.5);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(0, 255, 150, 0.3);
-            border-radius: 8px;
-            padding: 16px;
-        }
-
-        .stats-title {
-            font-size: 11px;
-            font-weight: bold;
-            color: #00ff96;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 12px;
-        }
-
-        .stat-item {
-            margin-bottom: 12px;
-        }
-
-        .stat-label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            margin-bottom: 4px;
-        }
-
-        .stat-label-text {
-            color: rgba(0, 255, 150, 0.6);
-        }
-
-        .stat-value {
-            color: #00ff96;
-        }
-
-        .progress-bar {
-            height: 6px;
-            background: rgba(0, 255, 150, 0.2);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: #00ff96;
-            transition: width 0.5s ease;
-        }
-
-        .progress-fill.secondary {
-            background: #00d9ff;
-        }
-
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            margin-bottom: 8px;
-        }
-
-        .info-label {
-            color: rgba(0, 255, 150, 0.6);
-        }
-
-        .info-value {
-            color: #00ff96;
-        }
-
-        .info-value.warning {
-            color: #fbbf24;
-        }
-
-        .exploit-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 11px;
-            margin-bottom: 8px;
-        }
-
-        .exploit-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #00ff96;
-        }
-
-        .exploit-dot.inactive {
-            background: rgba(0, 255, 150, 0.3);
-        }
-
-        .scan-line {
-            position: fixed;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: rgba(0, 255, 150, 0.3);
-            pointer-events: none;
-            z-index: 20;
-            animation: scan 8s linear infinite;
-        }
-
-        @keyframes scan {
-            0% { top: 0; }
-            100% { top: 100%; }
-        }
-
-        @media (max-width: 1024px) {
-            .main-content {
-                flex-direction: column;
-            }
-            .sidebar {
-                width: 100%;
-            }
-        }
-
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: rgba(0, 255, 150, 0.1);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: rgba(0, 255, 150, 0.3);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(0, 255, 150, 0.5);
-        }
-    </style>
+    <title>⚠️ ALERTA DE SEGURIDAD</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <canvas id="matrix-canvas"></canvas>
-    
-    <div class="container">
-        <div class="terminal-header">
-            <div class="header-left">
-                <div class="window-controls">
-                    <div class="window-control red"></div>
-                    <div class="window-control yellow"></div>
-                    <div class="window-control green"></div>
-                </div>
-                <span class="header-title">root@penetration-kit:~#</span>
+    <!-- Pantalla de "Hackeo" Inicial -->
+    <div id="hack-screen" class="hack-screen active">
+        <div class="glitch-container">
+            <div class="glitch" data-text="ACCESO DENEGADO">ACCESO DENEGADO</div>
+            <div class="hack-message">
+                <p class="typing-text">Sistema comprometido...</p>
+                <p class="typing-text delay-1">Accediendo a tus datos...</p>
+                <p class="typing-text delay-2">Bro, ¿en serio escaneaste ese QR? 😱</p>
             </div>
-            <div class="header-right">
-                <span id="session-date"></span>
-                <div class="status-indicator">
-                    <div class="status-dot"></div>
-                    <span>ACTIVE</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="main-content">
-            <div class="terminal-output" id="terminal"></div>
-
-            <div class="sidebar">
-                <div class="stats-card">
-                    <div class="stats-title">System Status</div>
-                    <div class="stat-item">
-                        <div class="stat-label">
-                            <span class="stat-label-text">CPU Usage</span>
-                            <span class="stat-value" id="cpu-value">0%</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="cpu-bar"></div>
-                        </div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">
-                            <span class="stat-label-text">Memory</span>
-                            <span class="stat-value" id="memory-value">0%</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill secondary" id="memory-bar"></div>
-                        </div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">
-                            <span class="stat-label-text">Network</span>
-                            <span class="stat-value" id="network-value">0%</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="network-bar"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="stats-card">
-                    <div class="stats-title">Target Information</div>
-                    <div class="info-row">
-                        <span class="info-label">IP Address:</span>
-                        <span class="info-value">192.168.1.1</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">OS:</span>
-                        <span class="info-value">Linux 5.15</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Open Ports:</span>
-                        <span class="info-value">4</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Vulnerabilities:</span>
-                        <span class="info-value warning">3 High</span>
-                    </div>
-                </div>
-
-                <div class="stats-card">
-                    <div class="stats-title">Network Activity</div>
-                    <div class="info-row">
-                        <span class="info-label">Packets Sent:</span>
-                        <span class="info-value" id="packets-value">0</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Protocol:</span>
-                        <span class="info-value">TCP/IP</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Encryption:</span>
-                        <span class="info-value">AES-256</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Status:</span>
-                        <span class="info-value">
-                            <div class="status-indicator">
-                                <div class="status-dot" style="width: 6px; height: 6px;"></div>
-                                <span>Connected</span>
-                            </div>
-                        </span>
-                    </div>
-                </div>
-
-                <div class="stats-card">
-                    <div class="stats-title">Exploit Status</div>
-                    <div class="exploit-item">
-                        <div class="exploit-dot"></div>
-                        <span>SQL Injection</span>
-                    </div>
-                    <div class="exploit-item">
-                        <div class="exploit-dot"></div>
-                        <span>Privilege Escalation</span>
-                    </div>
-                    <div class="exploit-item">
-                        <div class="exploit-dot"></div>
-                        <span>Backdoor Deployment</span>
-                    </div>
-                    <div class="exploit-item">
-                        <div class="exploit-dot inactive"></div>
-                        <span style="color: rgba(0, 255, 150, 0.5);">Lateral Movement</span>
-                    </div>
-                </div>
+            <div class="warning-box">
+                <div class="warning-icon">⚠️</div>
+                <p>TRANQUILO, esto es solo una demostración</p>
+                <button id="continue-btn" class="cta-button">Descubre por qué esto es peligroso →</button>
             </div>
         </div>
     </div>
 
-    <div class="scan-line"></div>
+    <!-- Contenido Principal -->
+    <div id="main-content" class="main-content">
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="container">
+                <div class="hero-badge">Seguridad Digital</div>
+                <h1 class="hero-title">Los Códigos QR Pueden Ser <span class="highlight">Peligrosos</span></h1>
+                <p class="hero-subtitle">No todos los QR son seguros. Aprende a protegerte de ataques de phishing, malware y robo de datos.</p>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">+400%</div>
+                        <div class="stat-label">Aumento en ataques QR desde 2022</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">1 de 3</div>
+                        <div class="stat-label">Personas no verifican URLs antes de escanear</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">$2.4M</div>
+                        <div class="stat-label">Pérdidas promedio por ataques QR en empresas</div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-    <script>
-        // Matrix background effect
-        const canvas = document.getElementById('matrix-canvas');
-        const ctx = canvas.getContext('2d');
-
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
-        const fontSize = 14;
-        const columns = canvas.width / fontSize;
-        const drops = [];
-
-        for (let i = 0; i < columns; i++) {
-            drops[i] = Math.random() * -100;
-        }
-
-        function drawMatrix() {
-            ctx.fillStyle = 'rgba(8, 8, 8, 0.05)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.fillStyle = 'rgba(0, 255, 150, 0.15)';
-            ctx.font = `${fontSize}px monospace`;
-
-            for (let i = 0; i < drops.length; i++) {
-                const text = chars[Math.floor(Math.random() * chars.length)];
-                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-
-                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-                    drops[i] = 0;
-                }
-                drops[i]++;
-            }
-        }
-
-        setInterval(drawMatrix, 50);
-
-        window.addEventListener('resize', () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        });
-
-        // Terminal sequence
-        const terminalSequence = [
-            { text: '> Initializing penetration framework...', type: 'info', delay: 500 },
-            { text: '> Loading exploit modules... [OK]', type: 'success', delay: 800 },
-            { text: '> Establishing secure tunnel... [OK]', type: 'success', delay: 1200 },
-            { text: '', type: 'normal', delay: 1400 },
-            { text: '> Starting network reconnaissance...', type: 'info', delay: 1600 },
-            { text: '> Scanning target: 192.168.1.1', type: 'normal', delay: 2000 },
-            { text: '  [*] Port 22/tcp   open   ssh', type: 'normal', delay: 2300 },
-            { text: '  [*] Port 80/tcp   open   http', type: 'normal', delay: 2500 },
-            { text: '  [*] Port 443/tcp  open   https', type: 'normal', delay: 2700 },
-            { text: '  [*] Port 3306/tcp open   mysql', type: 'warning', delay: 2900 },
-            { text: '', type: 'normal', delay: 3100 },
-            { text: '> Analyzing vulnerabilities...', type: 'info', delay: 3300 },
-            { text: '  [!] CVE-2024-3094 detected', type: 'warning', delay: 3800 },
-            { text: '  [!] Weak SSL configuration found', type: 'warning', delay: 4100 },
-            { text: '  [!] Default credentials detected', type: 'warning', delay: 4400 },
-            { text: '', type: 'normal', delay: 4600 },
-            { text: '> Attempting authentication bypass...', type: 'info', delay: 4800 },
-            { text: "  [*] Testing SQL injection vectors...", type: 'normal', delay: 5300 },
-            { text: "  [*] Payload: ' OR '1'='1' --", type: 'normal', delay: 5800 },
-            { text: '  [+] Authentication bypassed!', type: 'success', delay: 6500 },
-            { text: '', type: 'normal', delay: 6700 },
-            { text: '> Escalating privileges...', type: 'info', delay: 6900 },
-            { text: '  [*] Exploiting kernel vulnerability...', type: 'normal', delay: 7400 },
-            { text: '  [+] Root access obtained!', type: 'success', delay: 8200 },
-            { text: '', type: 'normal', delay: 8400 },
-            { text: '> Extracting sensitive data...', type: 'info', delay: 8600 },
-            { text: '  [*] /etc/passwd', type: 'normal', delay: 9000 },
-            { text: '  [*] /etc/shadow', type: 'normal', delay: 9200 },
-            { text: '  [*] /var/www/config/database.php', type: 'normal', delay: 9400 },
-            { text: '  [*] /home/admin/.ssh/id_rsa', type: 'normal', delay: 9600 },
-            { text: '  [+] 2,847 files extracted', type: 'success', delay: 10200 },
-            { text: '', type: 'normal', delay: 10400 },
-            { text: '> Installing backdoor...', type: 'info', delay: 10600 },
-            { text: '  [*] Deploying persistent access module...', type: 'normal', delay: 11100 },
-            { text: '  [+] Backdoor installed at port 4444', type: 'success', delay: 11800 },
-            { text: '', type: 'normal', delay: 12000 },
-            { text: '> Clearing traces...', type: 'info', delay: 12200 },
-            { text: '  [*] Wiping system logs...', type: 'normal', delay: 12600 },
-            { text: '  [*] Removing command history...', type: 'normal', delay: 12900 },
-            { text: '  [+] All traces removed', type: 'success', delay: 13400 },
-            { text: '', type: 'normal', delay: 13600 },
-            { text: '═══════════════════════════════════════', type: 'success', delay: 13800 },
-            { text: '  PENETRATION COMPLETE', type: 'success', delay: 14000 },
-            { text: '  System compromised successfully', type: 'success', delay: 14200 },
-            { text: '  Full access maintained', type: 'success', delay: 14400 },
-            { text: '═══════════════════════════════════════', type: 'success', delay: 14600 },
-        ];
-
-        const terminal = document.getElementById('terminal');
-        let currentIndex = 0;
-
-        function displayLine() {
-            if (currentIndex < terminalSequence.length) {
-                const line = terminalSequence[currentIndex];
-                const lineElement = document.createElement('div');
-                lineElement.className = `terminal-line ${line.type}`;
-                lineElement.textContent = line.text || '\u00A0';
-                terminal.appendChild(lineElement);
-                terminal.scrollTop = terminal.scrollHeight;
+        <!-- Casos Reales -->
+        <section class="cases-section">
+            <div class="container">
+                <h2 class="section-title">Casos Reales de Ataques con QR</h2>
+                <p class="section-subtitle">Estos incidentes realmente sucedieron y afectaron a miles de personas</p>
                 
-                currentIndex++;
+                <div class="cases-grid">
+                    <div class="case-card">
+                        <div class="case-image">
+                            <img src="https://web-assets.esetstatic.com/tn/-x700/wls/2022/01/fraude-codigos-qr-parquimetros-ciudades-estados-unidos.jpg?height=300&width=400" alt="Parquímetros con QR falsos">
+                        </div>
+                        <div class="case-content">
+                            <div class="case-tag">Texas, USA - 2023</div>
+                            <h3>Parquímetros Falsos</h3>
+                            <p>Criminales colocaron stickers con códigos QR falsos sobre parquímetros legítimos. Los usuarios escaneaban y pagaban en sitios fraudulentos, perdiendo su dinero y datos bancarios.</p>
+                            <div class="case-impact">
+                                <span class="impact-label">Impacto:</span>
+                                <span class="impact-value">+$50,000 robados</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="case-card">
+                        <div class="case-image">
+                            <img src="https://andro4all.com/hero/2020/08/Leer-codigos-QR-bares.jpg?width=768&aspect_ratio=16:9&format=nowebp?height=300&width=400" alt="Menú QR en restaurante">
+                        </div>
+                        <div class="case-content">
+                            <div class="case-tag">Europa - 2022</div>
+                            <h3>Menús de Restaurantes</h3>
+                            <p>Atacantes reemplazaron QR de menús digitales con versiones maliciosas que instalaban malware en los teléfonos de los comensales, robando contraseñas y datos personales.</p>
+                            <div class="case-impact">
+                                <span class="impact-label">Impacto:</span>
+                                <span class="impact-value">+2,000 víctimas</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="case-card">
+                        <div class="case-image">
+                            <img src="https://web-assets.esetstatic.com/tn/-x700/wls/2018/02/Bitcoin_ScamsAndroid.jpg?height=300&width=400" alt="Estafa cripto con QR">
+                        </div>
+                        <div class="case-content">
+                            <div class="case-tag">Global - 2023</div>
+                            <h3>Estafas de Criptomonedas</h3>
+                            <p>Códigos QR en redes sociales prometían "airdrops" gratuitos de criptomonedas. Al escanear, las víctimas conectaban sus wallets a contratos maliciosos que vaciaban sus fondos.</p>
+                            <div class="case-impact">
+                                <span class="impact-label">Impacto:</span>
+                                <span class="impact-value">$3.2M en pérdidas</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="case-card">
+                        <div class="case-image">
+                            <img src="https://www.redseguridad.com/wp-content/uploads/sites/2/2021/03/robo-de-tarjeta-mediante-phishing.jpg?height=300&width=400" alt="Phishing por email">
+                        </div>
+                        <div class="case-content">
+                            <div class="case-tag">Corporativo - 2024</div>
+                            <h3>Phishing Corporativo</h3>
+                            <p>Empleados recibieron emails con QR que supuestamente actualizaban sus credenciales. Los códigos llevaban a páginas falsas que robaban accesos a sistemas empresariales.</p>
+                            <div class="case-impact">
+                                <span class="impact-label">Impacto:</span>
+                                <span class="impact-value">500+ empresas afectadas</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección Interactiva -->
+        <section class="interactive-section">
+            <div class="container">
+                <h2 class="section-title">¿Puedes Identificar el QR Seguro?</h2>
+                <p class="section-subtitle">Pon a prueba tus conocimientos con este ejercicio interactivo</p>
                 
-                if (currentIndex < terminalSequence.length) {
-                    const nextDelay = terminalSequence[currentIndex].delay - line.delay;
-                    setTimeout(displayLine, nextDelay);
-                }
-            }
-        }
+                <div class="quiz-container">
+                    <div class="qr-options">
+                        <div class="qr-option" data-safe="false">
+                            <div class="qr-code">
+                                <img src="https://cdn-icons-png.flaticon.com/256/13481/13481093.png?height=200&width=200" alt="QR 1">
+                            </div>
+                            <div class="qr-details">
+                                <h4>QR en la Calle</h4>
+                                <p>Encontrado en un poste con "Escanea para ganar $500"</p>
+                                <ul class="qr-indicators">
+                                    <li>❌ Sin contexto oficial</li>
+                                    <li>❌ Promesa de dinero fácil</li>
+                                    <li>❌ Ubicación sospechosa</li>
+                                </ul>
+                            </div>
+                            <button class="check-btn" data-answer="unsafe">Verificar</button>
+                        </div>
 
-        // Start terminal sequence after 1 second
-        setTimeout(displayLine, 1000);
+                        <div class="qr-option" data-safe="true">
+                            <div class="qr-code">
+                                <img src="https://cdn-icons-png.flaticon.com/512/1240/1240352.png?height=200&width=200" alt="QR 2">
+                            </div>
+                            <div class="qr-details">
+                                <h4>QR en Tienda Oficial</h4>
+                                <p>En el mostrador de una tienda conocida con logo oficial</p>
+                                <ul class="qr-indicators">
+                                    <li>✅ Contexto verificable</li>
+                                    <li>✅ Ubicación oficial</li>
+                                    <li>✅ Logo de la empresa</li>
+                                </ul>
+                            </div>
+                            <button class="check-btn" data-answer="safe">Verificar</button>
+                        </div>
 
-        // System stats animation
-        let packets = 0;
+                        <div class="qr-option" data-safe="false">
+                            <div class="qr-code">
+                                <img src="https://marketplace.canva.com/mlSbU/MAFYoHmlSbU/1/tl/canva-email-address-icon-MAFYoHmlSbU.png?height=200&width=200" alt="QR 3">
+                            </div>
+                            <div class="qr-details">
+                                <h4>QR por Email</h4>
+                                <p>Email urgente de "tu banco" pidiendo actualizar datos</p>
+                                <ul class="qr-indicators">
+                                    <li>❌ Urgencia sospechosa</li>
+                                    <li>❌ Solicitud de datos sensibles</li>
+                                    <li>❌ Remitente no verificado</li>
+                                </ul>
+                            </div>
+                            <button class="check-btn" data-answer="unsafe">Verificar</button>
+                        </div>
+                    </div>
 
-        function updateStats() {
-            const cpu = Math.floor(Math.random() * 40) + 60;
-            const memory = Math.floor(Math.random() * 30) + 65;
-            const network = Math.floor(Math.random() * 50) + 40;
-            packets += Math.floor(Math.random() * 100) + 50;
+                    <div id="quiz-result" class="quiz-result hidden">
+                        <div class="result-content"></div>
+                    </div>
 
-            document.getElementById('cpu-value').textContent = cpu + '%';
-            document.getElementById('cpu-bar').style.width = cpu + '%';
-            
-            document.getElementById('memory-value').textContent = memory + '%';
-            document.getElementById('memory-bar').style.width = memory + '%';
-            
-            document.getElementById('network-value').textContent = network + '%';
-            document.getElementById('network-bar').style.width = network + '%';
-            
-            document.getElementById('packets-value').textContent = packets.toLocaleString();
-        }
+                    <div class="score-tracker">
+                        <span>Puntuación: <span id="score">0</span>/3</span>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-        // Update stats every second after starting
-        setTimeout(() => {
-            setInterval(updateStats, 1000);
-        }, 1000);
+        <!-- Cómo Protegerte -->
+        <section class="protection-section">
+            <div class="container">
+                <h2 class="section-title">Cómo Protegerte de QR Maliciosos</h2>
+                
+                <div class="protection-grid">
+                    <div class="protection-card">
+                        <div class="protection-icon">🔍</div>
+                        <h3>Verifica la URL</h3>
+                        <p>Antes de abrir el enlace, revisa que la URL sea legítima. Busca HTTPS y el dominio correcto.</p>
+                        <div class="tip-box">
+                            <strong>Tip:</strong> Usa apps que muestren la URL antes de abrirla
+                        </div>
+                    </div>
 
-        // Set session date
-        document.getElementById('session-date').textContent = 'SESSION: ' + new Date().toISOString().split('T')[0];
-    </script>
+                    <div class="protection-card">
+                        <div class="protection-icon">📍</div>
+                        <h3>Contexto es Clave</h3>
+                        <p>¿Dónde encontraste el QR? Los códigos en lugares públicos sin supervisión son más riesgosos.</p>
+                        <div class="tip-box">
+                            <strong>Tip:</strong> Prefiere QR en establecimientos oficiales
+                        </div>
+                    </div>
+
+                    <div class="protection-card">
+                        <div class="protection-icon">🛡️</div>
+                        <h3>Usa Seguridad</h3>
+                        <p>Mantén tu antivirus actualizado y usa apps de escaneo con protección integrada.</p>
+                        <div class="tip-box">
+                            <strong>Tip:</strong> Apps como Kaspersky QR Scanner verifican enlaces
+                        </div>
+                    </div>
+
+                    <div class="protection-card">
+                        <div class="protection-icon">⚠️</div>
+                        <h3>Desconfía de Urgencias</h3>
+                        <p>Los estafadores crean sensación de urgencia. Si algo parece demasiado bueno, probablemente lo sea.</p>
+                        <div class="tip-box">
+                            <strong>Tip:</strong> Nunca ingreses datos bancarios por QR desconocidos
+                        </div>
+                    </div>
+
+                    <div class="protection-card">
+                        <div class="protection-icon">🔐</div>
+                        <h3>Autenticación 2FA</h3>
+                        <p>Activa la verificación en dos pasos en todas tus cuentas importantes.</p>
+                        <div class="tip-box">
+                            <strong>Tip:</strong> Usa apps como Google Authenticator
+                        </div>
+                    </div>
+
+                    <div class="protection-card">
+                        <div class="protection-icon">📱</div>
+                        <h3>Actualiza tu Sistema</h3>
+                        <p>Mantén tu teléfono y apps actualizadas para tener los últimos parches de seguridad.</p>
+                        <div class="tip-box">
+                            <strong>Tip:</strong> Activa las actualizaciones automáticas
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Checklist Interactivo -->
+        <section class="checklist-section">
+            <div class="container">
+                <h2 class="section-title">Checklist Antes de Escanear</h2>
+                <p class="section-subtitle">Marca cada punto antes de escanear cualquier código QR</p>
+                
+                <div class="checklist-container">
+                    <div class="checklist-item">
+                        <input type="checkbox" id="check1">
+                        <label for="check1">
+                            <span class="checkbox-custom"></span>
+                            <span class="checkbox-text">¿El QR está en un lugar oficial y confiable?</span>
+                        </label>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="check2">
+                        <label for="check2">
+                            <span class="checkbox-custom"></span>
+                            <span class="checkbox-text">¿Puedo verificar la URL antes de abrirla?</span>
+                        </label>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="check3">
+                        <label for="check3">
+                            <span class="checkbox-custom"></span>
+                            <span class="checkbox-text">¿El QR NO promete dinero fácil o premios sospechosos?</span>
+                        </label>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="check4">
+                        <label for="check4">
+                            <span class="checkbox-custom"></span>
+                            <span class="checkbox-text">¿NO me están presionando con urgencia?</span>
+                        </label>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="check5">
+                        <label for="check5">
+                            <span class="checkbox-custom"></span>
+                            <span class="checkbox-text">¿Tengo mi antivirus y sistema actualizados?</span>
+                        </label>
+                    </div>
+                    
+                    <div id="checklist-result" class="checklist-result hidden">
+                        <div class="result-icon">✅</div>
+                        <p>¡Excelente! Has verificado todos los puntos de seguridad. Ahora puedes escanear con más confianza.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-main">
+                        <h3>Mantente Seguro</h3>
+                        <p>La seguridad digital es responsabilidad de todos. Comparte esta información con tus amigos y familiares.</p>
+                    </div>
+                    <div class="footer-links">
+                        <h4>Recursos</h4>
+                        <ul>
+                            <li><a href="https://www.fbi.gov/contact-us/field-offices/houston/news/press-releases/fbi-warns-of-malicious-qr-codes" target="_blank">FBI - Advertencia sobre QR maliciosos</a></li>
+                            <li><a href="https://www.cisa.gov/" target="_blank">CISA - Ciberseguridad</a></li>
+                            <li><a href="https://www.incibe.es/" target="_blank">INCIBE - Seguridad en España</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="footer-bottom">
+                    <p>© 2025 QR Security Awareness. Proyecto educativo sobre seguridad digital.</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
